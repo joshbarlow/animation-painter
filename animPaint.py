@@ -18,6 +18,8 @@ imageHeight = inputImage.shape[0]
 imageWidth = inputImage.shape[1]
 
 brushImage = cv2.imread('brushes/1.jpg', 0)
+brushSmallImage = cv2.imread('brushes/2.png', 0)
+brushSmallerImage = cv2.imread('brushes/3.png', 0)
 
 brushHeight = brushImage.shape[0]
 brushWidth = brushImage.shape[1]
@@ -38,14 +40,27 @@ def generateTransform(x, y):
     M = np.float32([[1,0,tx],[0,1,ty]])
     return M
 
+def generateRandomRotation(rows, cols):
+    rotation = random.random() * 360
+    M = cv2.getRotationMatrix2D(((cols-1)/2.0,(rows-1)/2.0),rotation,1)
+    return M
+
+def calcDifference(inImg, alteredImg):
+    diff1 = cv2.subtract(inImg, alteredImg, dtype=cv2.CV_64F) #values are too low
+    totalDiff = np.absolute(diff1)
+    totalDiff = np.sum(totalDiff)
+    return totalDiff
+
 blankImage = np.ones((imageHeight,imageWidth,3))
 
 baseImage = inputImage.copy()
 baseImage = np.zeros((imageHeight,imageWidth,3))
 
 brush = brushImage.astype(float) / 255
+brushSmall = brushSmallImage.astype(float) / 255
+brushSmaller = brushSmallerImage.astype(float) / 255
 
-for x in range(100):
+for x in range(1500):
     randX = int(random.random() * imageWidth)
     randY = int(random.random() * imageHeight)
 
@@ -53,8 +68,17 @@ for x in range(100):
 
     # print(inputImage[randY][randX])
 
+    inBrush = brush
+
+    if(x>400):
+        inBrush = brushSmall
+    if(x>800):
+        inBrush = brushSmaller
+
+    rotatedBrush = cv2.warpAffine(inBrush,generateRandomRotation(300, 300),(brush.shape[1],brush.shape[0]))
+
     border = cv2.copyMakeBorder(
-            brush,
+            rotatedBrush,
             top=0,
             bottom=brushTopBorder,
             left=0,
@@ -80,7 +104,20 @@ for x in range(100):
 
     sampleImage = cv2.add( cv2.multiply(baseImage.astype(float), cv2.subtract(blankImage.astype(float), sampleBrushImage.astype(float)) ), cv2.multiply(targetColor.astype(float), sampleBrushImage.astype(float)) )
 
-    baseImage = cv2.convertScaleAbs(sampleImage)
+    difference = calcDifference(inputImage, sampleImage)
+    diffBase = calcDifference(inputImage, baseImage)
+
+    if (difference <= diffBase):
+        baseImage = cv2.convertScaleAbs(sampleImage)
+    
+
+comparisonImage =  np.absolute(cv2.subtract(inputImage, baseImage, dtype=cv2.CV_64F).astype(int))
+
+print(comparisonImage.dtype)
+
+comparisonImage = cv2.cvtColor(np.uint8(comparisonImage), cv2.COLOR_BGR2GRAY)
+
+comparisonImage = np.tile(comparisonImage[:, :, None], [1, 1, 3])
 
 baseImage = np.concatenate((inputImage,baseImage), axis=1)
 
