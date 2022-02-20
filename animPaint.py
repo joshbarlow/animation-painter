@@ -4,7 +4,7 @@ import random
 import sys
 import os
 
-def animPaint(infile, outfile):
+def animPaintBatch():
     # check input file argument exists
     if (len(sys.argv) != 2):
         sys.exit("needs one input file")
@@ -12,15 +12,39 @@ def animPaint(infile, outfile):
     # create input file path (check it exists?)
     inputFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)),sys.argv[1])
 
-    inputImage = cv2.imread(inputFilePath, 1)
+    inputFiles = os.listdir(inputFilePath)
+
+    brushImage = cv2.imread('brushes/1.jpg', 0)
+    brushSmallImage = cv2.imread('brushes/2.png', 0)
+    brushSmallerImage = cv2.imread('brushes/3.png', 0)
+
+    outFileDir = os.path.join(os.path.dirname(os.path.realpath(__file__)),'output')
+    os.chdir(outFileDir)
+
+    for file in inputFiles:
+        if('.png' in file):
+            inFilePath = os.path.join(inputFilePath,file)
+            outFilePath = file
+            animPaint(inFilePath,outFilePath,brushImage,brushSmallImage,brushSmallerImage)
+            print(inFilePath + ' -> ' + outFilePath)
+
+def animPaint(inFile, outFile,brushImage,brushSmallImage,brushSmallerImage):
+    # check input file argument exists
+    # if (len(sys.argv) != 2):
+    #     sys.exit("needs one input file")
+
+    # create input file path (check it exists?)
+    # inputFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)),sys.argv[1])
+
+    inputImage = cv2.imread(inFile, 1)
     # inputImage = cv2.cvtColor(inputImage, cv2.COLOR_BGR2RGB) does it need to be rgb? we never see it
 
     imageHeight = inputImage.shape[0]
     imageWidth = inputImage.shape[1]
 
-    brushImage = cv2.imread('brushes/1.jpg', 0)
-    brushSmallImage = cv2.imread('brushes/2.png', 0)
-    brushSmallerImage = cv2.imread('brushes/3.png', 0)
+    # brushImage = cv2.imread('brushes/1.jpg', 0)
+    # brushSmallImage = cv2.imread('brushes/2.png', 0)
+    # brushSmallerImage = cv2.imread('brushes/3.png', 0)
 
     brushHeight = brushImage.shape[0]
     brushWidth = brushImage.shape[1]
@@ -34,40 +58,35 @@ def animPaint(infile, outfile):
 
     maskImage = np.ones((imageHeight,imageWidth,1)) * 100
 
-    # First Pass
-    outImage = paintIteration(baseImage, inputImage, brushImage, brushTopBorder, brushRightBorder, maskImage, 400)
+    # First Pass 400
+    outImage = paintIteration(baseImage, inputImage, brushImage, brushTopBorder, brushRightBorder, maskImage, 40)
     print('stage 1')
 
     comparisonImage =  np.absolute(cv2.subtract(inputImage, outImage, dtype=cv2.CV_64F).astype(int))
     comparisonImage = cv2.cvtColor(np.uint8(comparisonImage), cv2.COLOR_BGR2GRAY)
     comparisonImage = cv2.blur(comparisonImage, (30,30))
 
-    # Second Pass
-    outImage = paintIteration(outImage, inputImage, brushSmallImage, brushTopBorder, brushRightBorder, comparisonImage, 400)
+    # Second Pass 400
+    outImage = paintIteration(outImage, inputImage, brushSmallImage, brushTopBorder, brushRightBorder, comparisonImage, 40)
     print('stage 2')
 
     comparisonImage =  np.absolute(cv2.subtract(inputImage, outImage, dtype=cv2.CV_64F).astype(int))
     comparisonImage = cv2.cvtColor(np.uint8(comparisonImage), cv2.COLOR_BGR2GRAY)
     comparisonImage = cv2.blur(comparisonImage, (10,10))
 
-    # Third Pass
-    outImage = paintIteration(outImage, inputImage, brushSmallerImage, brushTopBorder, brushRightBorder, comparisonImage, 500)
+    # Third Pass 500
+    outImage = paintIteration(outImage, inputImage, brushSmallerImage, brushTopBorder, brushRightBorder, comparisonImage, 50)
     print('stage 3')
 
-    cv2.imshow('image', outImage)
-    cv2.waitKey(0)
+    # cv2.imshow('image', outImage)
+    # cv2.waitKey(0)
 
-    # cv2.imwrite('output.jpg',outImage)
+    cv2.imwrite(outFile,outImage)
 
 
 def generateTransform(x, y):
-
-    tx = ((random.random() * (600 )) - 100 ) * -1
-    ty = ((random.random() * (500 )) - 100 )
-
     ty = (y - 150)
     tx = (x - 150)
-
     M = np.float32([[1,0,tx],[0,1,ty]])
     return M
 
