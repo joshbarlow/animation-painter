@@ -12,7 +12,10 @@ def animPaintBatch():
     # create input file path (check it exists?)
     inputFilePath = os.path.join(os.path.dirname(os.path.realpath(__file__)),sys.argv[1])
 
-    inputFiles = os.listdir(inputFilePath)
+    inputFiles = sorted(os.listdir(inputFilePath))
+
+    # for file in inputFiles:
+    #     print(file)
 
     brushImage = cv2.imread('brushes/1.jpg', 0)
     brushSmallImage = cv2.imread('brushes/2.png', 0)
@@ -59,7 +62,7 @@ def animPaint(inFile, outFile,brushImage,brushSmallImage,brushSmallerImage):
     maskImage = np.ones((imageHeight,imageWidth,1)) * 100
 
     # First Pass 400
-    outImage = paintIteration(baseImage, inputImage, brushImage, brushTopBorder, brushRightBorder, maskImage, 40)
+    outImage = paintIteration(baseImage, inputImage, brushImage, brushTopBorder, brushRightBorder, maskImage, 400)
     print('stage 1')
 
     comparisonImage =  np.absolute(cv2.subtract(inputImage, outImage, dtype=cv2.CV_64F).astype(int))
@@ -67,7 +70,7 @@ def animPaint(inFile, outFile,brushImage,brushSmallImage,brushSmallerImage):
     comparisonImage = cv2.blur(comparisonImage, (30,30))
 
     # Second Pass 400
-    outImage = paintIteration(outImage, inputImage, brushSmallImage, brushTopBorder, brushRightBorder, comparisonImage, 40)
+    outImage = paintIteration(outImage, inputImage, brushSmallImage, brushTopBorder, brushRightBorder, comparisonImage, 400)
     print('stage 2')
 
     comparisonImage =  np.absolute(cv2.subtract(inputImage, outImage, dtype=cv2.CV_64F).astype(int))
@@ -75,11 +78,11 @@ def animPaint(inFile, outFile,brushImage,brushSmallImage,brushSmallerImage):
     comparisonImage = cv2.blur(comparisonImage, (10,10))
 
     # Third Pass 500
-    outImage = paintIteration(outImage, inputImage, brushSmallerImage, brushTopBorder, brushRightBorder, comparisonImage, 50)
+    outImage = paintIteration(outImage, inputImage, brushSmallerImage, brushTopBorder, brushRightBorder, comparisonImage, 500)
     print('stage 3')
 
-    # cv2.imshow('image', outImage)
-    # cv2.waitKey(0)
+    cv2.imshow('image', outImage)
+    cv2.waitKey(0)
 
     cv2.imwrite(outFile,outImage)
 
